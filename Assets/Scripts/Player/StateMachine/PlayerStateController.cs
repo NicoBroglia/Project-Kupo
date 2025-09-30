@@ -4,69 +4,98 @@ public class PlayerStateController : MonoBehaviour
 {
     public PlayerStates CurrentState { get; private set; }
 
-    public void SetState (PlayerStates newState)
+    PlayerController movement;
+    PlayerInputHandler input;
+    PlayerAnimationHandler anim;
+
+    void Awake()
+    {
+        movement = GetComponent<PlayerController>();
+        input = GetComponent<PlayerInputHandler>();
+        anim = GetComponent<PlayerAnimationHandler>();
+    }
+
+    void Start()
+    {
+        SetState(PlayerStates.Idle);
+    }
+
+    void Update()
+    {
+        UpdateState(CurrentState);
+        movement.ApplyGravity(); // Always apply gravity
+    }
+
+    public void SetState(PlayerStates newState)
     {
         if (CurrentState == newState) return;
 
-        if (CurrentState != newState)
-        {
-            ExitState(CurrentState);
-            CurrentState = newState;
-            EnterState(CurrentState);
-        }
+        ExitState(CurrentState);
+        CurrentState = newState;
+        EnterState(CurrentState);
+        Debug.Log($"Switched to: {newState}");
     }
 
     private void EnterState(PlayerStates state)
     {
-        // Logic for entering the current state
         switch (state)
         {
             case PlayerStates.Idle:
-                // Logic for entering Idle state
+                anim?.SetIdle(true);
                 break;
             case PlayerStates.Move:
-                // Logic for entering Move state
+                anim?.SetMoving(true);
                 break;
             case PlayerStates.Jump:
-                // Logic for entering Jump state
-                break;
-            case PlayerStates.Attack:
-                // Logic for entering Attack state
-                break;
-            case PlayerStates.Dash:
-                // Logic for entering Dash state
-                break;
-            case PlayerStates.Death:
-                // Logic for entering Death state
+                movement.Jump();
+                anim?.SetJump();
                 break;
         }
-        Debug.Log($"Entering state: {state}");
     }
 
     private void ExitState(PlayerStates state)
     {
-        // Logic for exiting the current state
         switch (state)
         {
             case PlayerStates.Idle:
-                // Logic for exiting Idle state
+                anim?.SetIdle(false);
                 break;
             case PlayerStates.Move:
-                // Logic for exiting Move state
-                break;
-            case PlayerStates.Jump:
-                // Logic for exiting Jump state
-                break;
-            case PlayerStates.Attack:
-                // Logic for exiting Attack state
-                break;
-            case PlayerStates.Dash:
-                // Logic for exiting Dash state
-                break;
-            case PlayerStates.Death:
-                // Logic for exiting Death state
+                anim?.SetMoving(false);
                 break;
         }
-        Debug.Log($"Exiting state: {state}");
+    }
+
+    private void UpdateState(PlayerStates state)
+    {
+        switch (state)
+        {
+            case PlayerStates.Idle:
+                if (input.GetMoveInput().magnitude > 0.1f)
+                    SetState(PlayerStates.Move);
+                if (input.JumpPressed())
+                    SetState(PlayerStates.Jump);
+                break;
+
+            case PlayerStates.Move:
+                var moveDir = input.GetMoveInput();
+                if (moveDir.magnitude > 0.1f)
+                    movement.Move(moveDir);
+                else
+                    SetState(PlayerStates.Idle);
+
+                if (input.JumpPressed())
+                    SetState(PlayerStates.Jump);
+                break;
+
+            case PlayerStates.Jump:
+                var moveDirWhileJump = input.GetMoveInput();
+                if (moveDirWhileJump.magnitude > 0.1f)
+                    movement.Move(moveDirWhileJump);
+
+                if (movement.IsGrounded())
+                    SetState(input.GetMoveInput().magnitude > 0.1f ? PlayerStates.Move : PlayerStates.Idle);
+                break;
+        }
     }
 }
