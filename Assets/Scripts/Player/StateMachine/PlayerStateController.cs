@@ -1,101 +1,45 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class PlayerStateController : MonoBehaviour
 {
-    public PlayerStates CurrentState { get; private set; }
+    private Dictionary<PlayerStates, IPlayerState> states;
+    private IPlayerState currentState;
 
-    PlayerController movement;
-    PlayerInputHandler input;
-    PlayerAnimationHandler anim;
+    public PlayerStates CurrentStateType { get; private set; }
 
-    void Awake()
+    public void InitializeStates(Dictionary<PlayerStates, IPlayerState> stateDictionary)
     {
-        movement = GetComponent<PlayerController>();
-        input = GetComponent<PlayerInputHandler>();
-        anim = GetComponent<PlayerAnimationHandler>();
+        states = stateDictionary;
+
+        // Force initialization
+        CurrentStateType = PlayerStates.Idle;
+        currentState = states[PlayerStates.Idle];
+        currentState.Enter();
+
+        Debug.Log("FSM initialized, current state: " + CurrentStateType);
     }
 
-    void Start()
+    public void SetState(PlayerStates newStateType)
     {
-        SetState(PlayerStates.Idle);
-    }
-
-    void Update()
-    {
-        UpdateState(CurrentState);
-        movement.ApplyGravity(); // Always apply gravity
-    }
-
-    public void SetState(PlayerStates newState)
-    {
-        if (CurrentState == newState) return;
-
-        ExitState(CurrentState);
-        CurrentState = newState;
-        EnterState(CurrentState);
-        Debug.Log($"Switched to: {newState}");
-    }
-
-    private void EnterState(PlayerStates state)
-    {
-        switch (state)
+        if (!states.ContainsKey(newStateType))
         {
-            case PlayerStates.Idle:
-                anim?.SetIdle(true);
-                break;
-            case PlayerStates.Move:
-                anim?.SetMoving(true);
-                break;
-            case PlayerStates.Jump:
-                movement.Jump();
-                anim?.SetJump();
-                break;
+            Debug.LogError("State not found: " + newStateType);
+            return;
         }
+
+        if (currentState != null)
+            currentState.Exit();
+
+        currentState = states[newStateType];
+        CurrentStateType = newStateType;
+        currentState.Enter();
+
+        Debug.Log("SetState called: " + newStateType);
     }
 
-    private void ExitState(PlayerStates state)
+    private void Update()
     {
-        switch (state)
-        {
-            case PlayerStates.Idle:
-                anim?.SetIdle(false);
-                break;
-            case PlayerStates.Move:
-                anim?.SetMoving(false);
-                break;
-        }
-    }
-
-    private void UpdateState(PlayerStates state)
-    {
-        switch (state)
-        {
-            case PlayerStates.Idle:
-                if (input.GetMoveInput().magnitude > 0.1f)
-                    SetState(PlayerStates.Move);
-                if (input.JumpPressed())
-                    SetState(PlayerStates.Jump);
-                break;
-
-            case PlayerStates.Move:
-                var moveDir = input.GetMoveInput();
-                if (moveDir.magnitude > 0.1f)
-                    movement.Move(moveDir);
-                else
-                    SetState(PlayerStates.Idle);
-
-                if (input.JumpPressed())
-                    SetState(PlayerStates.Jump);
-                break;
-
-            case PlayerStates.Jump:
-                var moveDirWhileJump = input.GetMoveInput();
-                if (moveDirWhileJump.magnitude > 0.1f)
-                    movement.Move(moveDirWhileJump);
-
-                if (movement.IsGrounded())
-                    SetState(input.GetMoveInput().magnitude > 0.1f ? PlayerStates.Move : PlayerStates.Idle);
-                break;
-        }
+        currentState?.Update();
     }
 }
