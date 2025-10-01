@@ -1,62 +1,115 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem.XR;
 
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent (typeof(PlayerInputHandler))]
+[RequireComponent (typeof(PlayerStateController))]
 public class PlayerController : MonoBehaviour
 {
-    CharacterController cc;
+    private CharacterController characterController;
+    private PlayerInputHandler inputHandler;
+    
+    private PlayerStateController stateController;
 
     [Header("Movement Settings")]
-    public float moveSpeed = 5f;
-    public float jumpForce = 7f;
-    public float gravity = -9.81f;
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float jumpForce = 7f;
+    [SerializeField] private float gravity = -9.81f;
 
-    Vector3 velocity;
+    private Vector3 velocity;
+
+    [Header("References")]
+    [SerializeField] private Transform cameraTransform; // assign Main Camera here
 
     void Awake()
     {
-        cc = GetComponent<CharacterController>();
+        if (characterController == null)
+        {
+            characterController = GetComponent<CharacterController>();
+        }
+        if (inputHandler == null)
+        {
+            inputHandler = GetComponent<PlayerInputHandler>();
+        }
+      
+        if (stateController == null)
+        {
+            stateController = GetComponent<PlayerStateController>();
+        }
+      
+    }
+    void Start()
+    {
+        var stateDict = new Dictionary<PlayerStates, IPlayerState>
+        {
+            { PlayerStates.Idle, new PlayerIdleState(this, stateController, inputHandler) },
+            { PlayerStates.Move, new PlayerMoveState(this, stateController, inputHandler) }
+        };
+
+        stateController.InitializeStates(stateDict);
+    }
+    void Update()
+    {
+        if (!IsGrounded())
+        {
+            Debug.Log("not grounded");
+        }
+        if(IsGrounded())
+        {
+            Debug.Log("grounded");
+        }
+        HandleGravity();
+
+
     }
 
-    public void Move(Vector3 direction)
+    public void MovePlayer(Vector2 moveInput)
     {
-        if (direction.magnitude >= 0.1f)
-        {
-            // Camera-relative movement
-            Vector3 camForward = Camera.main.transform.forward;
-            Vector3 camRight = Camera.main.transform.right;
+        if (moveInput.sqrMagnitude < 0.01f) return;
 
-            camForward.y = 0;
-            camRight.y = 0;
-            camForward.Normalize();
-            camRight.Normalize();
+        // Camera-relative direction
+        Vector3 forward = cameraTransform.forward;
+        Vector3 right = cameraTransform.right;
 
-            Vector3 moveDir = camForward * direction.z + camRight * direction.x;
+        forward.y = 0;
+        right.y = 0;
+        forward.Normalize();
+        right.Normalize();
 
-            cc.Move(moveDir * moveSpeed * Time.deltaTime);
+        Vector3 move = forward * moveInput.y + right * moveInput.x;
 
-            // Face movement direction
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDir), 10f * Time.deltaTime);
-        }
-    }
+        // Rotate player towards movement direction
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            Quaternion.LookRotation(move),
+            10f * Time.deltaTime
+        );
 
-    public void ApplyGravity()
-    {
-        if (cc.isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f; // Small push downward to stay grounded
-        }
+        // Move
+        characterController.Move(move * moveSpeed * Time.deltaTime);
+
+        // Gravity
+        if (characterController.isGrounded && velocity.y < 0)
+            velocity.y = -2f;
 
         velocity.y += gravity * Time.deltaTime;
-        cc.Move(velocity * Time.deltaTime);
+        characterController.Move(velocity * Time.deltaTime);
     }
 
-    public void Jump()
+    public void JumpPlayer()
     {
-        if (cc.isGrounded)
-        {
+        if (characterController.isGrounded)
             velocity.y = jumpForce;
-        }
     }
 
-    public bool IsGrounded() => cc.isGrounded;
+    private void HandleGravity()
+    {
+        if (IsGrounded() && velocity.y < 0)
+            velocity.y = -2f;
+
+        velocity.y += gravity * Time.deltaTime;
+        MovePlayer(new Vector2(0, velocity.y) * Time.deltaTime);
+    }
+    public bool IsGrounded() => characterController.isGrounded;
 }
