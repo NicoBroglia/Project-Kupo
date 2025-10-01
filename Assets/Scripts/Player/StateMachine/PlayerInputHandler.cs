@@ -31,8 +31,8 @@ public class PlayerInputHandler : MonoBehaviour
        // playerInput.actions["Look"].performed += ctx => LookInput = ctx.ReadValue<Vector2>();
        // playerInput.actions["Look"].canceled += ctx => LookInput = Vector2.zero;
 
-        playerInput.actions["Jump"].performed += ctx => JumpPressed = true;
-        playerInput.actions["Jump"].canceled += ctx => JumpPressed = false;
+       // playerInput.actions["Jump"].performed += ctx => JumpPressed = true;
+       // playerInput.actions["Jump"].canceled += ctx => JumpPressed = false;
 
         playerInput.actions["Attack"].performed += ctx => AttackPressed = true;
         playerInput.actions["Attack"].canceled += ctx => AttackPressed = false;

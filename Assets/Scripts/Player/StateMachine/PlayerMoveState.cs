@@ -13,14 +13,12 @@ public class PlayerMoveState : IPlayerState
         this.input = input;
     }
 
-    public void Enter() { Debug.Log("Enter Move"); }
+    public void Enter() { }
 
     public void Update()
     {
         // Move the player using camera-relative movement
         controller.MovePlayer(input.MoveInput);
-
-        Debug.Log("MoveState Update");
 
         // Return to Idle if input stops
         if (input.MoveInput.sqrMagnitude < 0.01f)
@@ -36,5 +34,5 @@ public class PlayerMoveState : IPlayerState
             stateController.SetState(PlayerStates.Attack);
     }
 
-    public void Exit() { Debug.Log("Exit Move"); }
+    public void Exit() { }
 }

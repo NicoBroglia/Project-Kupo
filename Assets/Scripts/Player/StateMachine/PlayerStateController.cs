@@ -16,8 +16,6 @@ public class PlayerStateController : MonoBehaviour
         CurrentStateType = PlayerStates.Idle;
         currentState = states[PlayerStates.Idle];
         currentState.Enter();
-
-        Debug.Log("FSM initialized, current state: " + CurrentStateType);
     }
 
     public void SetState(PlayerStates newStateType)
