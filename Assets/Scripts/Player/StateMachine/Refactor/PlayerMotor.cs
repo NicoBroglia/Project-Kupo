@@ -2,13 +2,24 @@ using UnityEngine;
 
 public class PlayerMotor : MonoBehaviour
 {
-    public float moveSpeed = 5f;
-    public float rotationSpeed = 10f; // Added rotation speed here
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float rotationSpeed = 10f; // Added rotation speed here
     public Vector3 LastMoveDirection { get; private set; }
 
     private bool isDashing;
     private float dashEndTime;
     private Vector3 dashVelocity;
+
+    private AnimationBridge animBridge;
+
+    private void Awake()
+    {
+        animBridge = GetComponent<AnimationBridge>();
+        if (animBridge == null)
+        {
+            Debug.LogError("Animator component not found on " + gameObject.name);
+        }
+    }
 
     public void Move(Vector2 input)
     {
@@ -25,6 +36,8 @@ public class PlayerMotor : MonoBehaviour
             // Rotate player smoothly towards movement direction
             RotateTowards(dir);
         }
+        float speed = dir.magnitude * moveSpeed; // velocidad real
+        animBridge?.SetMoveSpeed(speed);
     }
 
     private void RotateTowards(Vector3 direction)
@@ -42,6 +55,8 @@ public class PlayerMotor : MonoBehaviour
 
     void Update()
     {
+        animBridge.SetMoveSpeed(LastMoveDirection.magnitude);
+
         if (isDashing)
         {
             if (Time.time < dashEndTime)
@@ -59,5 +74,6 @@ public class PlayerMotor : MonoBehaviour
     {
         isDashing = false;
         dashVelocity = Vector3.zero;
+        animBridge?.SetMoveSpeed(0f);
     }
 }

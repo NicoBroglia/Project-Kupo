@@ -2,16 +2,15 @@ using UnityEngine;
 
 public class AttackAbility : IAbility
 {
-    private Animator animator;
+    private readonly AnimationBridge animationBridge;
 
-    public AttackAbility(Animator animator)
+    public AttackAbility(AnimationBridge animationBridge)
     {
-        this.animator = animator;
+        this.animationBridge = animationBridge;
     }
 
     public void Activate()
     {
-        animator.SetTrigger("Attack");
         // spawn hitbox, play sound, etc.
     }
 }

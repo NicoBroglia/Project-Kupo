@@ -7,18 +7,20 @@ public class PlayerController : MonoBehaviour
     public PlayerMotor Motor { get; private set; }
     public AbilitySystem AbilitySystem { get; private set; }
     private StateController stateController;
+    private AnimationBridge animationBridge;
 
     void Awake()
     {
         Input = GetComponent<PlayerInputHandler>();
         Motor = GetComponent<PlayerMotor>();
+        animationBridge = GetComponent<AnimationBridge>();
         AbilitySystem = new AbilitySystem();
         stateController = GetComponent<StateController>();
 
         // Register abilities
-        var animator = GetComponent<Animator>();
-        AbilitySystem.RegisterAbility("Attack", new AttackAbility(animator));
-        AbilitySystem.RegisterAbility("Dash", new DashAbility(animator, Motor));
+       // var animator = GetComponent<Animator>();
+        //AbilitySystem.RegisterAbility("Attack", new AttackAbility(animator));
+        AbilitySystem.RegisterAbility("Dash", new DashAbility(animationBridge, Motor));
 
         // Setup states
         var stateMap = new Dictionary<LocomotionState, IState>

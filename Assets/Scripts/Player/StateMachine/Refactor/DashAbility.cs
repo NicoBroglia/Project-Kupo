@@ -2,27 +2,25 @@ using UnityEngine;
 
 public class DashAbility : IAbility
 {
-    private Animator animator;
+    private readonly AnimationBridge animationBridge;
     private PlayerMotor motor;
 
     [SerializeField] private float dashDistance = 5f;
     [SerializeField] private float dashDuration = 0.2f;
 
-    public DashAbility(Animator animator, PlayerMotor motor)
+    public DashAbility(AnimationBridge animationBridge, PlayerMotor motor )
     {
-        this.animator = animator;
+        this.animationBridge = animationBridge;
         this.motor = motor;
     }
 
     public void Activate()
     {
-      if (animator != null)
-            animator.SetTrigger("Dash");
 
-        // Movimiento simple de dash en la dirección actual
+        // Simple forward movment for dash
         Vector3 dashDir = motor.LastMoveDirection.normalized;
         if (dashDir.sqrMagnitude < 0.01f)
-            dashDir = Vector3.forward; // fallback si no hay input
+            dashDir = Vector3.forward; // fallback if no input
 
         motor.Dash(dashDir, dashDistance, dashDuration);
     }
