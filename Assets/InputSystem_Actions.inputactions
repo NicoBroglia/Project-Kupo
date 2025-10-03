@@ -485,7 +485,7 @@
                 {
                     "name": "",
                     "id": "14ec632d-f298-44cb-a2d0-9562e675ab64",
-                    "path": "<Gamepad>/leftStickPress",
+                    "path": "<Gamepad>/buttonEast",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Gamepad",

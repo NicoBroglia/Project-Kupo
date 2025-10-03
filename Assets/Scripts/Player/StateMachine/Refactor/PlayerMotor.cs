@@ -1,24 +1,71 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerMotor : MonoBehaviour
 {
+    public float DashDistance => dashDistance;
+    public float DashDuration => dashDuration;
+
+
+    [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 10f; // Added rotation speed here
-    public Vector3 LastMoveDirection { get; private set; }
 
+    [Header("Gravity & Jump")]
+    [SerializeField] private float gravity = -9.81f;
+    [SerializeField] private float jumpForce = 2f;
+
+    [Header("Dash")]
+    [SerializeField] private float dashDistance = 5f;
+    [SerializeField] private float dashDuration = 1f;
+
+    private CharacterController controller;
+    private AnimationBridge animationBridge;
+
+    private Vector3 velocity;
+    private Vector3 dashVelocity;
     private bool isDashing;
     private float dashEndTime;
-    private Vector3 dashVelocity;
+    
+    public Vector3 LastMoveDirection { get; private set; } = Vector3.zero;
+    public bool IsGrounded => controller.isGrounded;
 
-    private AnimationBridge animBridge;
 
     private void Awake()
     {
-        animBridge = GetComponent<AnimationBridge>();
-        if (animBridge == null)
+        //null checks
+        if (animationBridge == null)
         {
-            Debug.LogError("Animator component not found on " + gameObject.name);
+            animationBridge = GetComponent<AnimationBridge>();
+            if (animationBridge == null)
+            {
+                Debug.LogError("Animator component not found on " + gameObject.name);
+            }
         }
+        if (controller == null)
+        {
+            controller = GetComponent<CharacterController>();
+            if (controller == null)
+            {
+                Debug.LogError("CharacterController component not found on " + gameObject.name);
+            }
+        }
+    }
+    void Update()
+    {   
+        IsDashingCheck();
+        ApplyGravity();
+        animationBridge.SetMoveSpeed(LastMoveDirection.magnitude);
+    }
+    private void ApplyGravity()
+    {
+        if (isDashing) return; //ignore gravity during dash
+
+        if (controller.isGrounded && velocity.y < 0)
+            velocity.y = -2f; // small downward force keeps grounded
+        velocity.y += gravity * Time.deltaTime;
+
+        controller.Move(velocity * Time.deltaTime);
     }
 
     public void Move(Vector2 input)
@@ -31,15 +78,12 @@ public class PlayerMotor : MonoBehaviour
         if (dir.sqrMagnitude > 0.01f)
         {
             // Move player
-            transform.position += dir.normalized * moveSpeed * Time.deltaTime;
+            controller.Move(dir.normalized * moveSpeed * Time.deltaTime);
 
             // Rotate player smoothly towards movement direction
             RotateTowards(dir);
         }
-        float speed = dir.magnitude * moveSpeed; // velocidad real
-        animBridge?.SetMoveSpeed(speed);
     }
-
     private void RotateTowards(Vector3 direction)
     {
         Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
@@ -48,20 +92,38 @@ public class PlayerMotor : MonoBehaviour
 
     public void Dash(Vector3 direction, float distance, float duration)
     {
-        isDashing = true;
+        /*isDashing = true;
         dashEndTime = Time.time + duration;
-        dashVelocity = direction.normalized * (distance / duration);
+        dashVelocity = direction.normalized * (distance / duration);*/
+        if (!isDashing)
+        {
+            StartCoroutine(DashCoroutine(direction.normalized, distance, duration));
+        }
     }
 
-    void Update()
+    private IEnumerator DashCoroutine(Vector3 dir, float distance, float duration)
     {
-        animBridge.SetMoveSpeed(LastMoveDirection.magnitude);
+        isDashing = true;
 
+        float elapsed = 0f;
+        float speed = distance / duration;
+
+        while (elapsed < duration)
+        {
+            controller.Move(dir * speed * Time.deltaTime);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        isDashing = false;
+    }
+    private void IsDashingCheck()
+    {
         if (isDashing)
         {
             if (Time.time < dashEndTime)
             {
-                transform.position += dashVelocity * Time.deltaTime;
+                controller.Move(dashVelocity * Time.deltaTime);
             }
             else
             {
@@ -73,7 +135,8 @@ public class PlayerMotor : MonoBehaviour
     public void Stop()
     {
         isDashing = false;
+        velocity = Vector3.zero;
         dashVelocity = Vector3.zero;
-        animBridge?.SetMoveSpeed(0f);
+        animationBridge?.SetMoveSpeed(0f);
     }
 }
