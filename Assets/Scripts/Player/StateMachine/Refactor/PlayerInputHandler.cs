@@ -42,7 +42,7 @@ public class PlayerInputHandler : MonoBehaviour
         // One-frame presses (edge detection)
         AttackPressed = attackAction.WasPerformedThisFrame();
         DashPressed = dashAction.WasPerformedThisFrame();
-        JumpPressed = jumpAction != null && jumpAction.WasPerformedThisFrame();
+       // JumpPressed = jumpAction != null && jumpAction.WasPerformedThisFrame();
 
         // Queue commands if pressed
         if (AttackPressed) stateController.EnqueueCommand(new AttackCommand());

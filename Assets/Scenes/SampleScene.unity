@@ -595,6 +595,10 @@ PrefabInstance:
       propertyPath: dashDistance
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 4156867920690486881, guid: 401c9878a192eee418872a4f1bc7dc9c, type: 3}
+      propertyPath: dashDuration
+      value: 0.5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

@@ -6,7 +6,6 @@ public class PlayerMotor : MonoBehaviour
     public float DashDistance => dashDistance;
     public float DashDuration => dashDuration;
 
-
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 10f; // Added rotation speed here
@@ -21,6 +20,7 @@ public class PlayerMotor : MonoBehaviour
 
     private CharacterController controller;
     private AnimationBridge animationBridge;
+    private PlayerInputHandler playerInputHandler;
 
     private Vector3 velocity;
     private Vector3 dashVelocity;
@@ -33,6 +33,8 @@ public class PlayerMotor : MonoBehaviour
 
     private void Awake()
     {
+        playerInputHandler = GetComponent<PlayerInputHandler>();
+
         //null checks
         if (animationBridge == null)
         {
@@ -53,7 +55,6 @@ public class PlayerMotor : MonoBehaviour
     }
     void Update()
     {   
-        IsDashingCheck();
         ApplyGravity();
         animationBridge.SetMoveSpeed(LastMoveDirection.magnitude);
     }
@@ -70,8 +71,6 @@ public class PlayerMotor : MonoBehaviour
 
     public void Move(Vector2 input)
     {
-        if (isDashing) return; // block input while dashing
-
         Vector3 dir = new Vector3(input.x, 0, input.y);
         LastMoveDirection = dir;
 
@@ -92,17 +91,16 @@ public class PlayerMotor : MonoBehaviour
 
     public void Dash(Vector3 direction, float distance, float duration)
     {
-        /*isDashing = true;
-        dashEndTime = Time.time + duration;
-        dashVelocity = direction.normalized * (distance / duration);*/
         if (!isDashing)
         {
             StartCoroutine(DashCoroutine(direction.normalized, distance, duration));
         }
+      
     }
 
     private IEnumerator DashCoroutine(Vector3 dir, float distance, float duration)
     {
+        playerInputHandler.enabled = false;
         isDashing = true;
 
         float elapsed = 0f;
@@ -116,21 +114,9 @@ public class PlayerMotor : MonoBehaviour
         }
 
         isDashing = false;
+        playerInputHandler.enabled = true;
     }
-    private void IsDashingCheck()
-    {
-        if (isDashing)
-        {
-            if (Time.time < dashEndTime)
-            {
-                controller.Move(dashVelocity * Time.deltaTime);
-            }
-            else
-            {
-                isDashing = false;
-            }
-        }
-    }
+   
 
     public void Stop()
     {

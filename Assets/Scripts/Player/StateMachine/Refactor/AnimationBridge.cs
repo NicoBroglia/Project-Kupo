@@ -19,5 +19,8 @@ public class AnimationBridge : MonoBehaviour
     {
         animator.SetFloat("MoveSpeed", value);
     }
-
+    public void PlayDash()
+    {
+        animator.SetTrigger("Dash");
+    }
 }
