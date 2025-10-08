@@ -9,6 +9,7 @@ public class PlayerMotor : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 10f; // Added rotation speed here
+    [SerializeField] private Transform cameraTransform;
 
     [Header("Gravity & Jump")]
     [SerializeField] private float gravity = -9.81f;
@@ -52,6 +53,9 @@ public class PlayerMotor : MonoBehaviour
                 Debug.LogError("CharacterController component not found on " + gameObject.name);
             }
         }
+        if (cameraTransform == null && Camera.main != null)
+            cameraTransform = Camera.main.transform;
+
     }
     void Update()
     {   
@@ -71,16 +75,26 @@ public class PlayerMotor : MonoBehaviour
 
     public void Move(Vector2 input)
     {
-        Vector3 dir = new Vector3(input.x, 0, input.y);
-        LastMoveDirection = dir;
 
-        if (dir.sqrMagnitude > 0.01f)
+        // Get camera directions on the horizontal plane
+        Vector3 camForward = cameraTransform.forward;
+        Vector3 camRight = cameraTransform.right;
+        camForward.y = 0f;
+        camRight.y = 0f;
+        camForward.Normalize();
+        camRight.Normalize();
+
+        // Convert input to world direction
+        Vector3 moveDir = camForward * input.y + camRight * input.x;
+        LastMoveDirection = moveDir;
+
+        if (moveDir.sqrMagnitude > 0.01f)
         {
-            // Move player
-            controller.Move(dir.normalized * moveSpeed * Time.deltaTime);
+            // Apply movement using CharacterController
+            controller.Move(moveDir.normalized * moveSpeed * Time.deltaTime);
 
-            // Rotate player smoothly towards movement direction
-            RotateTowards(dir);
+            // Rotate player smoothly toward movement direction
+            RotateTowards(moveDir);
         }
     }
     private void RotateTowards(Vector3 direction)
