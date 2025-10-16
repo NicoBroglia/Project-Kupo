@@ -1,4 +1,3 @@
-// PlayerStateController.cs
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -11,6 +10,7 @@ public class PlayerStateController : MonoBehaviour
     public PlayerInputReader Input { get; private set; }
 
     private PlayerBaseState currentState;
+    private Vector2 currentMoveInput;
     private Dictionary<LocomotionState, PlayerBaseState> states;
 
     private void Awake()
@@ -25,6 +25,7 @@ public class PlayerStateController : MonoBehaviour
             { LocomotionState.Move, new MoveState(this) },
             { LocomotionState.Jump, new JumpState(this) },
             { LocomotionState.Fall, new FallState(this) },
+            { LocomotionState.Dash, new DashState(this) }
         };
     }
 
@@ -33,9 +34,11 @@ public class PlayerStateController : MonoBehaviour
         Input.OnMove += HandleMove;
         Input.OnMoveCanceled += HandleMoveCanceled;
         Input.OnJump += HandleJump;
+        Input.OnDash += HandleDash;
 
         Motor.OnLanded += OnLanded;
         Motor.OnAirborne += OnAirborne;
+        Motor.OnDashEnded += OnDashEnded; // Subscribe to the new event
     }
 
     private void OnDisable()
@@ -43,36 +46,52 @@ public class PlayerStateController : MonoBehaviour
         Input.OnMove -= HandleMove;
         Input.OnMoveCanceled -= HandleMoveCanceled;
         Input.OnJump -= HandleJump;
+        Input.OnDash -= HandleDash;
 
         Motor.OnLanded -= OnLanded;
         Motor.OnAirborne -= OnAirborne;
+        Motor.OnDashEnded -= OnDashEnded; // Unsubscribe
+    }
+
+    private void Start()
+    {
+        SetState(LocomotionState.Idle);
     }
 
     private void Update() => currentState?.OnUpdate();
 
-    private void HandleMove(Vector2 moveInput) =>
+    private void HandleMove(Vector2 moveInput)
+    {
+        currentMoveInput = moveInput;
         currentState?.OnInput(moveInput);
+    }
 
-    private void HandleMoveCanceled() =>
-        SetState(LocomotionState.Idle);
+    private void HandleMoveCanceled()
+    {
+        currentMoveInput = Vector2.zero;
+        currentState?.OnInput(Vector2.zero);
+    }
 
-    private void HandleJump() =>
-        SetState(LocomotionState.Jump);
+    private void HandleJump() => currentState?.HandleJumpAttempt();
+    private void HandleDash() => currentState?.HandleDashAttempt();
 
-    private void OnLanded() =>
-        SetState(LocomotionState.Idle);
+    private void OnLanded() => currentState?.OnLanded();
+    private void OnAirborne() => SetState(LocomotionState.Fall);
 
-    private void OnAirborne() =>
-        SetState(LocomotionState.Fall);
+    // Let the current state know the dash has finished.
+    private void OnDashEnded() => currentState?.OnDashEnded();
+
+    public Vector2 GetCurrentMoveInput() => currentMoveInput;
 
     public void SetState(LocomotionState state)
     {
-        if (currentState == states[state]) return;
-        currentState?.OnExit();
-        currentState = states[state];
-        currentState.OnEnter();
-    }
+        if (states.TryGetValue(state, out PlayerBaseState newState))
+        {
+            if (currentState == newState) return;
 
-    private void Start() =>
-        SetState(LocomotionState.Idle);
+            currentState?.OnExit();
+            currentState = newState;
+            currentState.OnEnter();
+        }
+    }
 }

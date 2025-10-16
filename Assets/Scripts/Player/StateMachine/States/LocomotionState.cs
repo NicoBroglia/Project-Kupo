@@ -3,6 +3,7 @@ public enum LocomotionState
     Idle,
     Move,
     Jump,
-    Fall
-    // Add more later: Dash, Attack...
+    Fall,
+    Dash
+    // Add more later: Attack...
 }

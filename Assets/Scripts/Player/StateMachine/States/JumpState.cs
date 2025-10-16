@@ -6,28 +6,21 @@ public class JumpState : PlayerBaseState
 
     public override void OnEnter()
     {
-        // Stop movement animation while jumping
+        Debug.Log("ENTER Jump State");
         animator.SetBool(hashIsMoving, false);
-
-        // Set jumping animation
         animator.SetBool(hashIsJumping, true);
         animator.SetBool(hashIsFalling, false);
 
         motor.Jump();
     }
 
-    public override void OnUpdate()
-    {
-        // Once the player leaves the ground, transition to FallState
-        if (!motor.IsGrounded())
-        {
-            controller.SetState(LocomotionState.Fall);
-        }
-    }
+    // OnUpdate is no longer needed. The global OnAirborne event in the
+    // PlayerStateController will handle the transition to the FallState,
+    // which is more reliable and centralizes the logic.
 
     public override void OnExit()
     {
-        // Clear the jumping flag when leaving jump state
+        Debug.Log("EXIT Jump State");
         animator.SetBool(hashIsJumping, false);
     }
 }
