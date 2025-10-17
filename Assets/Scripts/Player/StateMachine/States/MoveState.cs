@@ -53,10 +53,4 @@ public class MoveState : PlayerBaseState
             controller.SetState(LocomotionState.Jump);
         }
     }
-
-    // Always allow dash from a move state
-    public override void HandleDashAttempt()
-    {
-        controller.SetState(LocomotionState.Dash);
-    }
 }

@@ -30,10 +30,4 @@ public class IdleState : PlayerBaseState
             controller.SetState(LocomotionState.Jump);
         }
     }
-
-    // A dash is always valid from the Idle state
-    public override void HandleDashAttempt()
-    {
-        controller.SetState(LocomotionState.Dash);
-    }
 }

@@ -27,9 +27,6 @@ public abstract class PlayerBaseState
     // --- Event Hooks for States to Implement ---
     public virtual void OnInput(Vector2 moveInput) { }
     public virtual void HandleJumpAttempt() { }
-    public virtual void HandleDashAttempt() { }
     public virtual void OnLanded() { }
-
-    // New hook for the dash ending
     public virtual void OnDashEnded() { }
 }

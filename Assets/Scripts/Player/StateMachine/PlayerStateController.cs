@@ -5,9 +5,15 @@ using System.Collections.Generic;
 [RequireComponent(typeof(PlayerInputReader))]
 public class PlayerStateController : MonoBehaviour
 {
+    public PlayerBaseState CurrentState => currentState;
+
     public PlayerMotor Motor { get; private set; }
     public Animator Animator { get; private set; }
     public PlayerInputReader Input { get; private set; }
+
+    public StatController Stat { get; private set; }
+    public ActionController Actions { get; private set; }
+
 
     private PlayerBaseState currentState;
     private Vector2 currentMoveInput;
@@ -18,6 +24,8 @@ public class PlayerStateController : MonoBehaviour
         Motor = GetComponent<PlayerMotor>();
         Animator = GetComponentInChildren<Animator>();
         Input = GetComponent<PlayerInputReader>();
+        Actions = GetComponent<ActionController>();
+        Stat = GetComponent<StatController>();
 
         states = new Dictionary<LocomotionState, PlayerBaseState>
         {
@@ -73,12 +81,9 @@ public class PlayerStateController : MonoBehaviour
     }
 
     private void HandleJump() => currentState?.HandleJumpAttempt();
-    private void HandleDash() => currentState?.HandleDashAttempt();
-
+    private void HandleDash() => Actions.TryPerformDash();
     private void OnLanded() => currentState?.OnLanded();
     private void OnAirborne() => SetState(LocomotionState.Fall);
-
-    // Let the current state know the dash has finished.
     private void OnDashEnded() => currentState?.OnDashEnded();
 
     public Vector2 GetCurrentMoveInput() => currentMoveInput;

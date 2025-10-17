@@ -3,16 +3,17 @@ using UnityEngine;
 public class DashState : PlayerBaseState
 {
     private float _dashClipLength = -1f; // Use -1 to indicate it hasn't been found yet
-    public DashState(PlayerStateController controller) : base(controller) { }
+    public DashState(PlayerStateController controller) : base(controller) {}
 
     public override void OnEnter()
     {
-        Debug.Log("ENTER Dash State");
+        // Successful dash
+        Debug.Log("Dash successful.");
+        animator.SetBool(hashIsDashing, true);
+        motor.Dash();
 
-        // Find the animation clip length the first time we enter
         if (_dashClipLength < 0f)
         {
-            // IMPORTANT: Replace "Player_Dash" with the EXACT name of your dash animation clip.
             _dashClipLength = GetClipLength("Dash");
         }
 
@@ -30,7 +31,6 @@ public class DashState : PlayerBaseState
         }
 
         animator.SetBool(hashIsDashing, true);
-        motor.Dash();
     }
 
 
@@ -52,9 +52,6 @@ public class DashState : PlayerBaseState
     // Input is ignored during the dash state.
     public override void OnInput(Vector2 moveInput) { }
     public override void HandleJumpAttempt() { }
-
-    // The dash action cannot be re-triggered from within itself.
-    public override void HandleDashAttempt() { }
 
     public override void OnDashEnded()
     {
