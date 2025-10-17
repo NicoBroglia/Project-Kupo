@@ -7,8 +7,6 @@ public class DashState : PlayerBaseState
 
     public override void OnEnter()
     {
-        // Successful dash
-        Debug.Log("Dash successful.");
         animator.SetBool(hashIsDashing, true);
         motor.Dash();
 

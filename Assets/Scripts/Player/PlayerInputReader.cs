@@ -9,10 +9,6 @@ public class PlayerInputReader : MonoBehaviour
     public event Action OnJump;
     public event Action OnDash;
 
-    // Fields 'moveInput' and 'moving' removed.
-    // The Update method is removed.
-
-    // Input events are now fired immediately upon change.
     public void OnMoveInput(InputAction.CallbackContext ctx)
     {
         if (ctx.performed)

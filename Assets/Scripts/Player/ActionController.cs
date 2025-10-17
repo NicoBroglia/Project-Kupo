@@ -1,21 +1,35 @@
 using UnityEngine;
 
-[RequireComponent(typeof(PlayerStateController), typeof(StaminaController))]
+[RequireComponent(typeof(PlayerStateController))]
 public class ActionController : MonoBehaviour
 {
     private PlayerStateController _stateController;
     private StaminaController _staminaController;
+    private PlayerMotor _playerMotor;
 
     [Header("Dash Action")]
     [SerializeField] private float dashStaminaCost = 20f;
     [SerializeField] private float dashCooldown = 1.0f;
     private float _dashCooldownTimer;
 
-
     private void Awake()
     {
-        _stateController = GetComponent<PlayerStateController>();
-        _staminaController = GetComponent<StaminaController>();
+        if (_stateController == null)
+        {
+            _stateController = GetComponent<PlayerStateController>();
+        }
+        if (_staminaController == null)
+        {
+            _staminaController = GetComponent<StaminaController>();
+        }
+        if (_playerMotor == null)
+        {
+            _playerMotor = GetComponent<PlayerMotor>();
+        }
+        else
+        {
+            Debug.LogWarning("Required component is missing on the GameObject!", this);
+        }
     }
 
     private void Update()
@@ -35,17 +49,21 @@ public class ActionController : MonoBehaviour
 
     public void TryPerformDash()
     {
+
         // 1. Check if we are already dashing
         if (_stateController.CurrentState is DashState) return;
 
-        // 2. Check if the dash is on cooldown
+        // 2. Check if grounded
+        if (!_playerMotor.IsGrounded()) return;
+
+        // 3. Check if the dash is on cooldown
         if (_dashCooldownTimer > 0f) return;
 
-        // 3. Check for stamina
+        // 4. Check for stamina
         if (_staminaController.TryConsumeStamina(dashStaminaCost))
         {
             _stateController.SetState(LocomotionState.Dash);
-            // 4. Start the cooldown
+            // 5. Start the cooldown
             _dashCooldownTimer = dashCooldown;
         }
         else

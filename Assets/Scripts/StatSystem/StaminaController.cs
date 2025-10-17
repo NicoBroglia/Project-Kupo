@@ -3,22 +3,28 @@ using UnityEngine;
 [RequireComponent(typeof(StatController))]
 public class StaminaController : MonoBehaviour
 {
+    public float CurrentStamina { get; private set; }
+    public float MaxStamina { get; private set; }
+
     [Header("Configuration")]
     [Tooltip("Drag your 'Endurance' StatDefinition Scriptable Object here.")]
     [SerializeField] private StatDefinition enduranceStat;
     [SerializeField] private float staminaRegenRate = 20f;
     [SerializeField] private float staminaRegenDelay = 1.5f;
 
-    // Public properties for other scripts to read
-    public float CurrentStamina { get; private set; }
-    public float MaxStamina { get; private set; }
-
     private StatController _statController;
     private float _staminaRegenTimer;
 
     private void Awake()
     {
-        _statController = GetComponent<StatController>();
+        if (_statController == null)
+        {
+            _statController = GetComponent<StatController>();
+        }
+        else
+        {
+            Debug.LogWarning("StatController component is missing on the GameObject!", this);
+        }
     }
 
     private void Start()
