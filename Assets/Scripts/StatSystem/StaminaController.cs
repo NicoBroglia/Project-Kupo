@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 [RequireComponent(typeof(StatController))]
 public class StaminaController : MonoBehaviour
@@ -6,47 +7,60 @@ public class StaminaController : MonoBehaviour
     public float CurrentStamina { get; private set; }
     public float MaxStamina { get; private set; }
 
+    // Event to notify UI or other systems of stamina changes.
+    public event Action<float, float> OnStaminaChanged = delegate { };
+
     [Header("Configuration")]
-    [Tooltip("Drag your 'Endurance' StatDefinition Scriptable Object here.")]
     [SerializeField] private StatDefinition enduranceStat;
     [SerializeField] private float staminaRegenRate = 20f;
     [SerializeField] private float staminaRegenDelay = 1.5f;
 
     private StatController _statController;
+    private CharacterStat _endurance;
     private float _staminaRegenTimer;
 
     private void Awake()
     {
-        if (_statController == null)
-        {
-            _statController = GetComponent<StatController>();
-        }
-        else
-        {
-            Debug.LogWarning("StatController component is missing on the GameObject!", this);
-        }
+        _statController = GetComponent<StatController>();
     }
 
     private void Start()
     {
-        // Calculate initial max stamina and set current stamina
-        CalculateMaxStamina();
+        _endurance = _statController.GetStat(enduranceStat);
+        if (_endurance == null)
+        {
+            Debug.LogError("Endurance StatDefinition not found on StatController!", this);
+            // Assign a default to prevent errors.
+            MaxStamina = 100;
+        }
+        else
+        {
+            CalculateMaxStamina();
+        }
+
         CurrentStamina = MaxStamina;
+        OnStaminaChanged(CurrentStamina, MaxStamina);
     }
 
     private void Update()
     {
         if (_staminaRegenTimer <= 0f)
         {
-            if (CurrentStamina < MaxStamina)
-            {
-                CurrentStamina += staminaRegenRate * Time.deltaTime;
-                CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
-            }
+            RegenerateStamina();
         }
         else
         {
             _staminaRegenTimer -= Time.deltaTime;
+        }
+    }
+
+    private void RegenerateStamina()
+    {
+        if (CurrentStamina < MaxStamina)
+        {
+            CurrentStamina += staminaRegenRate * Time.deltaTime;
+            CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
+            OnStaminaChanged(CurrentStamina, MaxStamina);
         }
     }
 
@@ -56,6 +70,7 @@ public class StaminaController : MonoBehaviour
         {
             CurrentStamina -= amount;
             _staminaRegenTimer = staminaRegenDelay;
+            OnStaminaChanged(CurrentStamina, MaxStamina);
             return true;
         }
         return false;
@@ -63,15 +78,7 @@ public class StaminaController : MonoBehaviour
 
     private void CalculateMaxStamina()
     {
-        CharacterStat endurance = _statController.GetStat(enduranceStat);
-        if (endurance != null)
-        {
-            MaxStamina = 50 + (endurance.Value * 5f);
-        }
-        else
-        {
-            Debug.LogWarning("Endurance StatDefinition not assigned on the StaminaController!", this);
-            MaxStamina = 50; // Default value
-        }
+        // Example formula: 100 base stamina + 10 for each point of endurance.
+        MaxStamina = 100 + (_endurance.Value * 10f);
     }
 }

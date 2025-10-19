@@ -987,7 +987,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMotorLogic
   _moveSpeed: 5
-  _rotationSpeed: 15
+  _rotationSpeed: 10
   _cameraTransform: {fileID: 1921652097}
   _gravity: -9.81
   _jumpHeight: 1.5
@@ -1053,15 +1053,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StatController
   stats:
   - definition: {fileID: 11400000, guid: 2c49f0774cd3aab42a339efec6e067a6, type: 2}
-    _baseValue: 10
+    _baseValue: 0
   - definition: {fileID: 11400000, guid: a81b804b1e23bfa48a1b768736eb370a, type: 2}
-    _baseValue: 10
+    _baseValue: 0
   - definition: {fileID: 11400000, guid: a4f48185a5d76ba41b165f0ca2badf8b, type: 2}
-    _baseValue: 10
+    _baseValue: 0
   - definition: {fileID: 11400000, guid: 9af25bb8b63020e488dc1fc44bfdf240, type: 2}
-    _baseValue: 10
+    _baseValue: 0
   - definition: {fileID: 11400000, guid: 4e9a88ba30c70ea44b3588469e7a9ee4, type: 2}
-    _baseValue: 10
+    _baseValue: 0
 --- !u!1 &1076131434
 GameObject:
   m_ObjectHideFlags: 0
@@ -1095,7 +1095,7 @@ MonoBehaviour:
   staminaController: {fileID: 953025405}
   enduranceText: {fileID: 327994154}
   staminaText: {fileID: 710521694}
-  enduranceStatDefinition: {fileID: 11400000, guid: a81b804b1e23bfa48a1b768736eb370a, type: 2}
+  enduranceStatDefinition: {fileID: 0}
 --- !u!4 &1076131436
 Transform:
   m_ObjectHideFlags: 0

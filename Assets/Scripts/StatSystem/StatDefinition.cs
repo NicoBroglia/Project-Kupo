@@ -1,9 +1,7 @@
 using UnityEngine;
 
-/// <summary>
 /// A ScriptableObject that defines a stat's core, unchangeable properties.
-/// Create these as assets ("Vigor", "Strength").
-/// </summary>
+/// This allows for easy creation and management of stats as assets in the project.
 [CreateAssetMenu(fileName = "New Stat Definition", menuName = "Stats/Stat Definition")]
 public class StatDefinition : ScriptableObject
 {

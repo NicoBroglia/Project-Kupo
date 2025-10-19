@@ -11,37 +11,41 @@ public class DebugStatsUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI enduranceText;
     [SerializeField] private TextMeshProUGUI staminaText;
 
+    [Header("Stat Definitions")]
+    [SerializeField] private StatDefinition enduranceStatDefinition; // Assign in inspector
+
+    private CharacterStat _enduranceStat;
+
+    private void Start()
+    {
+        if (statController != null)
+        {
+            // Cache the stat reference once at the start.
+            _enduranceStat = statController.GetStat(enduranceStatDefinition);
+        }
+    }
+
     private void Update()
     {
-        // Ensure we have the references before trying to update the UI
         if (statController == null || staminaController == null) return;
 
-        // Find the Endurance StatDefinition to get its value
-        // Note: This is not super efficient to do in Update, but for a debug UI, it's fine.
-        // A better way would be to cache the StatDefinition.
-        CharacterStat enduranceStat = null;
-        foreach (var stat in statController.stats)
+        // Update UI with cached stat.
+        if (_enduranceStat != null)
         {
-            if (stat.definition.statName == "Endurance")
-            {
-                enduranceStat = stat;
-                break;
-            }
-        }
-
-        // Update the UI text fields
-        if (enduranceStat != null)
-        {
-            enduranceText.text = $"Endurance: {enduranceStat.Value}";
+            enduranceText.text = $"Endurance: {_enduranceStat.Value}";
         }
 
         staminaText.text = $"Stamina: {staminaController.CurrentStamina:F0} / {staminaController.MaxStamina:F0}";
     }
 
-    // A public method to easily set the target controller from another script if needed
     public void SetTarget(StatController stats, StaminaController stamina)
     {
         statController = stats;
         staminaController = stamina;
+        // Recache the stat if the target changes.
+        if (statController != null)
+        {
+            _enduranceStat = statController.GetStat(enduranceStatDefinition);
+        }
     }
 }

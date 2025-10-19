@@ -27,46 +27,52 @@ public class PlayerMotor : MonoBehaviour
     private Vector3 _dashDirection;
     private float _dashSpeed = 0f;
 
-    // Public Events
-    public event Action OnLanded;
-    public event Action OnAirborne;
-    public event Action OnJumped;
-    public event Action OnDash;
-    public event Action OnDashEnded;
+    // Events for the State Machine to subscribe to.
+    public event Action OnLanded = delegate { };
+    public event Action OnAirborne = delegate { };
+    public event Action OnJumped = delegate { };
+    public event Action OnDash = delegate { };
+    public event Action OnDashEnded = delegate { };
 
     private CharacterController _controller;
     private Vector3 _velocity;
     private bool _isGrounded;
-    private bool _wasGrounded;
+    private bool _wasGrounded; // To detect changes in grounded state.
 
     private void Awake()
     {
-        if (_controller == null)
+        _controller = GetComponent<CharacterController>();
+    }
+
+    private void Start()
+    {
+        // Calculate dash speed once at the start.
+        if (_dashDuration > 0)
         {
-            _controller = GetComponent<CharacterController>();
-        }
-        else
-        {
-            Debug.LogWarning("CharacterController component is missing on the GameObject!", this);
+            _dashSpeed = _dashDistance / _dashDuration;
         }
     }
 
     private void Update()
     {
-        ApplyGravity();
+        HandleGravity();
         CheckGroundState();
-        DashUpdate();
+        UpdateDash();
     }
 
-    private void ApplyGravity()
+    private void HandleGravity()
     {
         if (_isGrounded && _velocity.y < 0)
-            _velocity.y = -2f;
+        {
+            _velocity.y = -2f; // A small downward force to keep the character grounded.
+        }
 
         _velocity.y += _gravity * Time.deltaTime;
 
-        if (!_isDashing)
+        if (!_isDashing) // Gravity should not affect dashing movement.
+        {
             _controller.Move(_velocity * Time.deltaTime);
+        }
     }
 
     private void CheckGroundState()
@@ -74,9 +80,9 @@ public class PlayerMotor : MonoBehaviour
         bool groundedNow = Physics.CheckSphere(_groundCheck.position, _groundDistance, _groundMask);
 
         if (!_wasGrounded && groundedNow)
-            OnLanded?.Invoke();
+            OnLanded.Invoke();
         else if (_wasGrounded && !groundedNow)
-            OnAirborne?.Invoke();
+            OnAirborne.Invoke();
 
         _wasGrounded = groundedNow;
         _isGrounded = groundedNow;
@@ -86,52 +92,64 @@ public class PlayerMotor : MonoBehaviour
     {
         if (_isDashing) return;
 
+        Vector3 moveDirection = GetCameraRelativeMoveDirection(input);
+
+        if (moveDirection.sqrMagnitude > 0.01f)
+        {
+            _controller.Move(moveDirection * _moveSpeed * Time.deltaTime);
+            RotateTowards(moveDirection);
+        }
+    }
+
+    private Vector3 GetCameraRelativeMoveDirection(Vector2 input)
+    {
         Vector3 camForward = _cameraTransform.forward;
         Vector3 camRight = _cameraTransform.right;
         camForward.y = 0;
         camRight.y = 0;
-        camForward.Normalize();
-        camRight.Normalize();
+        return (camForward * input.y + camRight * input.x).normalized;
+    }
 
-        Vector3 moveDirection = (camForward * input.y + camRight * input.x).normalized;
-
-        if (moveDirection.sqrMagnitude > 0.01f)
-        {
-            float inputMagnitude = Mathf.Clamp01(input.magnitude);
-            _controller.Move(moveDirection * _moveSpeed * inputMagnitude * Time.deltaTime);
-
-            Quaternion targetRot = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, _rotationSpeed * Time.deltaTime);
-        }
+    private void RotateTowards(Vector3 direction)
+    {
+        Quaternion targetRot = Quaternion.LookRotation(direction);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, _rotationSpeed * Time.deltaTime);
     }
 
     public void Jump()
     {
         if (!_isGrounded) return;
         _velocity.y = Mathf.Sqrt(_jumpHeight * -2f * _gravity);
-        OnJumped?.Invoke();
+        OnJumped.Invoke();
     }
 
-    public void Dash()
+    /// Initiates a dash based on the player's current movement input.
+    /// If there's no input, it dashes in the direction the character is facing.
+    public void Dash(Vector2 moveInput)
     {
         if (_isDashing) return;
 
-        if (_dashDuration <= 0) // Prevent division by zero
+        // If the player is moving (input magnitude is greater than a small threshold)...
+        if (moveInput.sqrMagnitude > 0.01f)
         {
-            _dashDuration = 0.01f;
+            // ...calculate the dash direction based on that movement input and the camera.
+            _dashDirection = GetCameraRelativeMoveDirection(moveInput);
         }
-        _dashSpeed = _dashDistance / _dashDuration;
+        else
+        {
+            // ...otherwise (if the player is standing still), dash in the direction the character model is facing.
+            _dashDirection = transform.forward;
+        }
 
-
-        _dashDirection = transform.forward;
         _dashTimer = _dashDuration;
         _isDashing = true;
-        _velocity.y = 0f;
+        _velocity.y = 0f; // Reset vertical velocity for a horizontal dash.
 
-        OnDash?.Invoke();
+        OnDash.Invoke();
     }
 
-    private void DashUpdate()
+
+    private void UpdateDash()
     {
         if (!_isDashing) return;
 
@@ -141,9 +159,7 @@ public class PlayerMotor : MonoBehaviour
         if (_dashTimer <= 0f)
         {
             _isDashing = false;
-
-            Vector3 dashEndPos = transform.position;
-            OnDashEnded?.Invoke();
+            OnDashEnded.Invoke();
         }
     }
 
