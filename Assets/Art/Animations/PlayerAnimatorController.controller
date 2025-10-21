@@ -25,6 +25,18 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &-9092935884402966350
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f38248748125b6146a0fbbc24ebbadc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StateSpeedMatcher
 --- !u!1101 &-7099405182662401296
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -207,7 +219,8 @@ AnimatorState:
   - {fileID: -9128347481843175439}
   - {fileID: -6687568666434004919}
   - {fileID: -7099405182662401296}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: -9092935884402966350}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 1
@@ -360,6 +373,12 @@ AnimatorController:
     m_Controller: {fileID: 9100000}
   - m_Name: IsDashing
     m_Type: 4
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 9100000}
+  - m_Name: AnimationSpeedMultiplier
+    m_Type: 1
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0

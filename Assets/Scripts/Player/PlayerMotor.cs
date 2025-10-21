@@ -2,156 +2,176 @@ using UnityEngine;
 using System;
 
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(ActionSpeedController))]
 public class PlayerMotor : MonoBehaviour
 {
-    public float DashDuration => dashDuration;
+    public float DashDuration => GetCurrentDashDuration();
 
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float rotationSpeed = 10f;
-    [SerializeField] private Transform cameraTransform;
+    [SerializeField] private float _moveSpeed = 5f;
+    [SerializeField] private float _rotationSpeed = 10f;
+    [SerializeField] private Transform _cameraTransform;
 
     [Header("Jump & Gravity")]
-    [SerializeField] private float gravity = -9.81f;
-    [SerializeField] private float jumpHeight = 1.5f;
-    [SerializeField] private Transform groundCheck;
-    [SerializeField] private float groundDistance = 0.2f;
-    [SerializeField] private LayerMask groundMask;
+    [SerializeField] private float _gravity = -9.81f;
+    [SerializeField] private float _jumpHeight = 1.5f;
+    [SerializeField] private Transform _groundCheck;
+    [SerializeField] private float _groundDistance = 0.2f;
+    [SerializeField] private LayerMask _groundMask;
 
     [Header("Dash")]
-    [SerializeField] private float dashDistance = 5f;
-    [SerializeField] private float dashDuration = 0.25f;
+    [SerializeField] private float _dashDistance = 5f;
+    [Tooltip("The base duration of a dash at 1.0x speed.")]
+    [SerializeField] private float _baseDashDuration = 0.35f;
 
-    private bool isDashing = false;
-    private float dashTimer = 0f;
-    private Vector3 dashDirection;
-    // Keep dashSpeed as a field, but it will be updated.
-    private float dashSpeed = 0f;
+    private bool _isDashing = false;
+    private float _dashTimer = 0f;
+    private Vector3 _dashDirection;
+    private float _dashSpeed = 0f;
 
-    // --- DEBUG VARIABLES ---
-    private Vector3 dashStartPos;
-    private float actualDashTime = 0f;
-    // --- END DEBUG VARIABLES ---
+    public event Action OnLanded = delegate { };
+    public event Action OnAirborne = delegate { };
+    public event Action OnJumped = delegate { };
+    public event Action OnDash = delegate { };
+    public event Action OnDashEnded = delegate { };
 
-    // Public Events
-    public event Action OnLanded;
-    public event Action OnAirborne;
-    public event Action OnJumped;
-    public event Action OnDash;
-    public event Action OnDashEnded;
-
-    private CharacterController controller;
-    private Vector3 velocity;
-    private bool isGrounded;
-    private bool wasGrounded;
+    private CharacterController _controller;
+    private ActionSpeedController _actionSpeedController;
+    private Vector3 _velocity;
+    private bool _isGrounded;
+    private bool _wasGrounded;
 
     private void Awake()
     {
-        controller = GetComponent<CharacterController>();
+        _controller = GetComponent<CharacterController>();
+        _actionSpeedController = GetComponent<ActionSpeedController>();
     }
 
     private void Update()
     {
-        ApplyGravity();
+        // Add a master null check for robustness during scene shutdown.
+        if (_controller == null || _actionSpeedController == null) return;
+
+        HandleGravity();
         CheckGroundState();
-        DashUpdate();
+        UpdateDash();
+    }
+
+    private float GetCurrentDashDuration()
+    {
+        if (_actionSpeedController != null)
+        {
+            // Logic changed from division to multiplication for clarity.
+            float duration = _baseDashDuration * _actionSpeedController.ActionDurationMultiplier;
+            return Mathf.Max(0.01f, duration);
+        }
+        return _baseDashDuration;
+    }
+
+    public void Dash(Vector2 moveInput)
+    {
+        if (_isDashing) return;
+
+        float currentDuration = GetCurrentDashDuration();
+
+        if (currentDuration > 0)
+        {
+            _dashSpeed = _dashDistance / currentDuration;
+        }
+
+        if (moveInput.sqrMagnitude > 0.01f)
+        {
+            _dashDirection = GetCameraRelativeMoveDirection(moveInput);
+        }
+        else
+        {
+            _dashDirection = transform.forward;
+        }
+
+        _dashTimer = currentDuration;
+        _isDashing = true;
+        _velocity.y = 0f;
+
+        OnDash.Invoke();
+    }
+
+    private void HandleGravity()
+    {
+        if (_isGrounded && _velocity.y < 0)
+        {
+            _velocity.y = -2f;
+        }
+
+        _velocity.y += _gravity * Time.deltaTime;
+
+        if (!_isDashing)
+        {
+            _controller.Move(_velocity * Time.deltaTime);
+        }
     }
 
     private void CheckGroundState()
     {
-        bool groundedNow = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+        bool groundedNow = Physics.CheckSphere(_groundCheck.position, _groundDistance, _groundMask);
 
-        if (!wasGrounded && groundedNow)
-            OnLanded?.Invoke();
-        else if (wasGrounded && !groundedNow)
-            OnAirborne?.Invoke();
+        if (!_wasGrounded && groundedNow)
+            OnLanded.Invoke();
+        else if (_wasGrounded && !groundedNow)
+            OnAirborne.Invoke();
 
-        wasGrounded = groundedNow;
-        isGrounded = groundedNow;
-    }
-
-    private void ApplyGravity()
-    {
-        if (isGrounded && velocity.y < 0)
-            velocity.y = -2f;
-
-        velocity.y += gravity * Time.deltaTime;
-
-        if (!isDashing)
-            controller.Move(velocity * Time.deltaTime);
+        _wasGrounded = groundedNow;
+        _isGrounded = groundedNow;
     }
 
     public void Move(Vector2 input)
     {
-        if (isDashing) return;
+        if (_isDashing) return;
 
-        Vector3 camForward = cameraTransform.forward;
-        Vector3 camRight = cameraTransform.right;
-        camForward.y = 0;
-        camRight.y = 0;
-        camForward.Normalize();
-        camRight.Normalize();
-
-        Vector3 moveDirection = (camForward * input.y + camRight * input.x).normalized;
+        Vector3 moveDirection = GetCameraRelativeMoveDirection(input);
 
         if (moveDirection.sqrMagnitude > 0.01f)
         {
-            float inputMagnitude = Mathf.Clamp01(input.magnitude);
-            controller.Move(moveDirection * moveSpeed * inputMagnitude * Time.deltaTime);
-
-            Quaternion targetRot = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+            _controller.Move(moveDirection * _moveSpeed * Time.deltaTime);
+            RotateTowards(moveDirection);
         }
+    }
+
+    private Vector3 GetCameraRelativeMoveDirection(Vector2 input)
+    {
+        Vector3 camForward = _cameraTransform.forward;
+        Vector3 camRight = _cameraTransform.right;
+        camForward.y = 0;
+        camRight.y = 0;
+        return (camForward * input.y + camRight * input.x).normalized;
+    }
+
+    private void RotateTowards(Vector3 direction)
+    {
+        Quaternion targetRot = Quaternion.LookRotation(direction);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, _rotationSpeed * Time.deltaTime);
     }
 
     public void Jump()
     {
-        if (!isGrounded) return;
-        velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-        OnJumped?.Invoke();
+        if (!_isGrounded) return;
+        _velocity.y = Mathf.Sqrt(_jumpHeight * -2f * _gravity);
+        OnJumped.Invoke();
     }
 
-    public void Dash()
+    private void UpdateDash()
     {
-        if (isDashing) return;
+        if (!_isDashing) return;
 
-        if (dashDuration <= 0) // Prevent division by zero
+        _controller.Move(_dashDirection * _dashSpeed * Time.deltaTime);
+        _dashTimer -= Time.deltaTime;
+
+        if (_dashTimer <= 0f)
         {
-            dashDuration = 0.01f;
-        }
-        dashSpeed = dashDistance / dashDuration;
-
-
-        dashDirection = transform.forward;
-        dashTimer = dashDuration;
-        isDashing = true;
-        velocity.y = 0f;
-
-        dashStartPos = transform.position;
-        actualDashTime = 0f;
-
-        OnDash?.Invoke();
-    }
-
-    private void DashUpdate()
-    {
-        if (!isDashing) return;
-
-        controller.Move(dashDirection * dashSpeed * Time.deltaTime);
-        dashTimer -= Time.deltaTime;
-        actualDashTime += Time.deltaTime;
-
-        if (dashTimer <= 0f)
-        {
-            isDashing = false;
-
-            Vector3 dashEndPos = transform.position;
-            float totalDistanceTraveled = Vector3.Distance(dashStartPos, dashEndPos);
-
-            OnDashEnded?.Invoke();
+            _isDashing = false;
+            OnDashEnded.Invoke();
         }
     }
 
-    public bool IsGrounded() => isGrounded;
-    public bool IsDashing() => isDashing;
+    public bool IsGrounded() => _isGrounded;
+    public bool IsDashing() => _isDashing;
 }

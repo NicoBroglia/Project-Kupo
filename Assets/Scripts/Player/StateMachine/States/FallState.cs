@@ -6,32 +6,26 @@ public class FallState : PlayerBaseState
 
     public override void OnEnter()
     {
-        Debug.Log("ENTER Fall State");
         animator.SetBool(hashIsFalling, true);
-        animator.SetBool(hashIsJumping, false);
-        animator.SetBool(hashIsMoving, false);
+        animator.SetBool(hashIsJumping, false); // Ensure jump is reset
     }
 
     public override void OnUpdate()
     {
-        // The PlayerMotor's Update loop already handles applying gravity.
-        // The only job of the FallState's Update is to check for a landing.
-        if (motor.IsGrounded())
-        {
-            controller.SetState(LocomotionState.Idle);
-        }
+        // Allow for air control by applying movement from input.
+        motor.Move(controller.GetCurrentMoveInput());
     }
 
     public override void OnLanded()
     {
-        // An alternative to checking in Update is using the OnLanded event.
-        // This is often cleaner.
-        controller.SetState(LocomotionState.Idle);
+        // On landing, transition to idle or move based on player input.
+        controller.SetState(controller.GetCurrentMoveInput().sqrMagnitude > 0.01f
+            ? LocomotionState.Move
+            : LocomotionState.Idle);
     }
 
     public override void OnExit()
     {
-        Debug.Log("EXIT Fall State");
         animator.SetBool(hashIsFalling, false);
     }
 }

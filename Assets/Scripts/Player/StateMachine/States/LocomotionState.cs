@@ -5,5 +5,5 @@ public enum LocomotionState
     Jump,
     Fall,
     Dash
-    // Add more later: Attack...
+    // Future states: Attack, Block, Dodge...
 }

@@ -6,21 +6,14 @@ public class JumpState : PlayerBaseState
 
     public override void OnEnter()
     {
-        Debug.Log("ENTER Jump State");
-        animator.SetBool(hashIsMoving, false);
         animator.SetBool(hashIsJumping, true);
-        animator.SetBool(hashIsFalling, false);
-
         motor.Jump();
+        // The transition to FallState is now implicitly handled by the PlayerStateController's
+        // OnAirborne event, making this state cleaner.
     }
-
-    // OnUpdate is no longer needed. The global OnAirborne event in the
-    // PlayerStateController will handle the transition to the FallState,
-    // which is more reliable and centralizes the logic.
 
     public override void OnExit()
     {
-        Debug.Log("EXIT Jump State");
         animator.SetBool(hashIsJumping, false);
     }
 }

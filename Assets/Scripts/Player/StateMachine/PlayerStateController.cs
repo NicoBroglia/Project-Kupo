@@ -3,23 +3,32 @@ using System.Collections.Generic;
 
 [RequireComponent(typeof(PlayerMotor))]
 [RequireComponent(typeof(PlayerInputReader))]
+[RequireComponent(typeof(ActionSpeedController))] // Add dependency
 public class PlayerStateController : MonoBehaviour
 {
+    public PlayerBaseState CurrentState => _currentState;
+
     public PlayerMotor Motor { get; private set; }
     public Animator Animator { get; private set; }
     public PlayerInputReader Input { get; private set; }
+    public StatController Stat { get; private set; }
+    public ActionController Actions { get; private set; }
+    public ActionSpeedController SpeedController { get; private set; } // Public property for states to access
 
-    private PlayerBaseState currentState;
-    private Vector2 currentMoveInput;
-    private Dictionary<LocomotionState, PlayerBaseState> states;
+    private PlayerBaseState _currentState;
+    private Vector2 _currentMoveInput;
+    private Dictionary<LocomotionState, PlayerBaseState> _states;
 
     private void Awake()
     {
         Motor = GetComponent<PlayerMotor>();
         Animator = GetComponentInChildren<Animator>();
         Input = GetComponent<PlayerInputReader>();
+        Actions = GetComponent<ActionController>();
+        Stat = GetComponent<StatController>();
+        SpeedController = GetComponent<ActionSpeedController>(); // Initialize the new property
 
-        states = new Dictionary<LocomotionState, PlayerBaseState>
+        _states = new Dictionary<LocomotionState, PlayerBaseState>
         {
             { LocomotionState.Idle, new IdleState(this) },
             { LocomotionState.Move, new MoveState(this) },
@@ -38,7 +47,7 @@ public class PlayerStateController : MonoBehaviour
 
         Motor.OnLanded += OnLanded;
         Motor.OnAirborne += OnAirborne;
-        Motor.OnDashEnded += OnDashEnded; // Subscribe to the new event
+        Motor.OnDashEnded += OnDashEnded;
     }
 
     private void OnDisable()
@@ -50,7 +59,7 @@ public class PlayerStateController : MonoBehaviour
 
         Motor.OnLanded -= OnLanded;
         Motor.OnAirborne -= OnAirborne;
-        Motor.OnDashEnded -= OnDashEnded; // Unsubscribe
+        Motor.OnDashEnded -= OnDashEnded;
     }
 
     private void Start()
@@ -58,40 +67,37 @@ public class PlayerStateController : MonoBehaviour
         SetState(LocomotionState.Idle);
     }
 
-    private void Update() => currentState?.OnUpdate();
+    private void Update() => _currentState?.OnUpdate();
 
     private void HandleMove(Vector2 moveInput)
     {
-        currentMoveInput = moveInput;
-        currentState?.OnInput(moveInput);
+        _currentMoveInput = moveInput;
+        _currentState?.OnInput(moveInput);
     }
 
     private void HandleMoveCanceled()
     {
-        currentMoveInput = Vector2.zero;
-        currentState?.OnInput(Vector2.zero);
+        _currentMoveInput = Vector2.zero;
+        _currentState?.OnInput(Vector2.zero);
     }
 
-    private void HandleJump() => currentState?.HandleJumpAttempt();
-    private void HandleDash() => currentState?.HandleDashAttempt();
-
-    private void OnLanded() => currentState?.OnLanded();
+    private void HandleJump() => _currentState?.HandleJumpAttempt();
+    private void HandleDash() => Actions.TryPerformDash();
+    private void OnLanded() => _currentState?.OnLanded();
     private void OnAirborne() => SetState(LocomotionState.Fall);
+    private void OnDashEnded() => _currentState?.OnDashEnded();
 
-    // Let the current state know the dash has finished.
-    private void OnDashEnded() => currentState?.OnDashEnded();
-
-    public Vector2 GetCurrentMoveInput() => currentMoveInput;
+    public Vector2 GetCurrentMoveInput() => _currentMoveInput;
 
     public void SetState(LocomotionState state)
     {
-        if (states.TryGetValue(state, out PlayerBaseState newState))
+        if (_states.TryGetValue(state, out PlayerBaseState newState))
         {
-            if (currentState == newState) return;
+            if (_currentState == newState) return;
 
-            currentState?.OnExit();
-            currentState = newState;
-            currentState.OnEnter();
+            _currentState?.OnExit();
+            _currentState = newState;
+            _currentState.OnEnter();
         }
     }
 }
