@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 [RequireComponent(typeof(PlayerMotor))]
 [RequireComponent(typeof(PlayerInputReader))]
-[RequireComponent(typeof(ActionController))]
-[RequireComponent(typeof(StatController))]
+[RequireComponent(typeof(ActionSpeedController))] // Add dependency
 public class PlayerStateController : MonoBehaviour
 {
     public PlayerBaseState CurrentState => _currentState;
 
-    // Properties to expose components to the states.
     public PlayerMotor Motor { get; private set; }
     public Animator Animator { get; private set; }
     public PlayerInputReader Input { get; private set; }
+    public StatController Stat { get; private set; }
     public ActionController Actions { get; private set; }
+    public ActionSpeedController SpeedController { get; private set; } // Public property for states to access
 
     private PlayerBaseState _currentState;
     private Vector2 _currentMoveInput;
@@ -21,13 +21,13 @@ public class PlayerStateController : MonoBehaviour
 
     private void Awake()
     {
-        // Cache all component references.
         Motor = GetComponent<PlayerMotor>();
         Animator = GetComponentInChildren<Animator>();
         Input = GetComponent<PlayerInputReader>();
         Actions = GetComponent<ActionController>();
+        Stat = GetComponent<StatController>();
+        SpeedController = GetComponent<ActionSpeedController>(); // Initialize the new property
 
-        // Initialize the state dictionary.
         _states = new Dictionary<LocomotionState, PlayerBaseState>
         {
             { LocomotionState.Idle, new IdleState(this) },
@@ -40,7 +40,6 @@ public class PlayerStateController : MonoBehaviour
 
     private void OnEnable()
     {
-        // Subscribe to input and motor events.
         Input.OnMove += HandleMove;
         Input.OnMoveCanceled += HandleMoveCanceled;
         Input.OnJump += HandleJump;
@@ -53,7 +52,6 @@ public class PlayerStateController : MonoBehaviour
 
     private void OnDisable()
     {
-        // Unsubscribe to prevent memory leaks.
         Input.OnMove -= HandleMove;
         Input.OnMoveCanceled -= HandleMoveCanceled;
         Input.OnJump -= HandleJump;
@@ -69,13 +67,8 @@ public class PlayerStateController : MonoBehaviour
         SetState(LocomotionState.Idle);
     }
 
-    private void Update()
-    {
-        // Delegate the update logic to the current state.
-        _currentState?.OnUpdate();
-    }
+    private void Update() => _currentState?.OnUpdate();
 
-    // --- Event Handlers ---
     private void HandleMove(Vector2 moveInput)
     {
         _currentMoveInput = moveInput;
@@ -96,9 +89,9 @@ public class PlayerStateController : MonoBehaviour
 
     public Vector2 GetCurrentMoveInput() => _currentMoveInput;
 
-    public void SetState(LocomotionState stateKey)
+    public void SetState(LocomotionState state)
     {
-        if (_states.TryGetValue(stateKey, out PlayerBaseState newState))
+        if (_states.TryGetValue(state, out PlayerBaseState newState))
         {
             if (_currentState == newState) return;
 

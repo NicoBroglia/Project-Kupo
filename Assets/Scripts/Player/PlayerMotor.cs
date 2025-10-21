@@ -2,9 +2,10 @@ using UnityEngine;
 using System;
 
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(ActionSpeedController))]
 public class PlayerMotor : MonoBehaviour
 {
-    public float DashDuration => _dashDuration;
+    public float DashDuration => GetCurrentDashDuration();
 
     [Header("Movement")]
     [SerializeField] private float _moveSpeed = 5f;
@@ -20,14 +21,14 @@ public class PlayerMotor : MonoBehaviour
 
     [Header("Dash")]
     [SerializeField] private float _dashDistance = 5f;
-    [SerializeField] private float _dashDuration = 0.25f;
+    [Tooltip("The base duration of a dash at 1.0x speed.")]
+    [SerializeField] private float _baseDashDuration = 0.35f;
 
     private bool _isDashing = false;
     private float _dashTimer = 0f;
     private Vector3 _dashDirection;
     private float _dashSpeed = 0f;
 
-    // Events for the State Machine to subscribe to.
     public event Action OnLanded = delegate { };
     public event Action OnAirborne = delegate { };
     public event Action OnJumped = delegate { };
@@ -35,41 +36,75 @@ public class PlayerMotor : MonoBehaviour
     public event Action OnDashEnded = delegate { };
 
     private CharacterController _controller;
+    private ActionSpeedController _actionSpeedController;
     private Vector3 _velocity;
     private bool _isGrounded;
-    private bool _wasGrounded; // To detect changes in grounded state.
+    private bool _wasGrounded;
 
     private void Awake()
     {
         _controller = GetComponent<CharacterController>();
-    }
-
-    private void Start()
-    {
-        // Calculate dash speed once at the start.
-        if (_dashDuration > 0)
-        {
-            _dashSpeed = _dashDistance / _dashDuration;
-        }
+        _actionSpeedController = GetComponent<ActionSpeedController>();
     }
 
     private void Update()
     {
+        // Add a master null check for robustness during scene shutdown.
+        if (_controller == null || _actionSpeedController == null) return;
+
         HandleGravity();
         CheckGroundState();
         UpdateDash();
+    }
+
+    private float GetCurrentDashDuration()
+    {
+        if (_actionSpeedController != null)
+        {
+            // Logic changed from division to multiplication for clarity.
+            float duration = _baseDashDuration * _actionSpeedController.ActionDurationMultiplier;
+            return Mathf.Max(0.01f, duration);
+        }
+        return _baseDashDuration;
+    }
+
+    public void Dash(Vector2 moveInput)
+    {
+        if (_isDashing) return;
+
+        float currentDuration = GetCurrentDashDuration();
+
+        if (currentDuration > 0)
+        {
+            _dashSpeed = _dashDistance / currentDuration;
+        }
+
+        if (moveInput.sqrMagnitude > 0.01f)
+        {
+            _dashDirection = GetCameraRelativeMoveDirection(moveInput);
+        }
+        else
+        {
+            _dashDirection = transform.forward;
+        }
+
+        _dashTimer = currentDuration;
+        _isDashing = true;
+        _velocity.y = 0f;
+
+        OnDash.Invoke();
     }
 
     private void HandleGravity()
     {
         if (_isGrounded && _velocity.y < 0)
         {
-            _velocity.y = -2f; // A small downward force to keep the character grounded.
+            _velocity.y = -2f;
         }
 
         _velocity.y += _gravity * Time.deltaTime;
 
-        if (!_isDashing) // Gravity should not affect dashing movement.
+        if (!_isDashing)
         {
             _controller.Move(_velocity * Time.deltaTime);
         }
@@ -122,32 +157,6 @@ public class PlayerMotor : MonoBehaviour
         _velocity.y = Mathf.Sqrt(_jumpHeight * -2f * _gravity);
         OnJumped.Invoke();
     }
-
-    /// Initiates a dash based on the player's current movement input.
-    /// If there's no input, it dashes in the direction the character is facing.
-    public void Dash(Vector2 moveInput)
-    {
-        if (_isDashing) return;
-
-        // If the player is moving (input magnitude is greater than a small threshold)...
-        if (moveInput.sqrMagnitude > 0.01f)
-        {
-            // ...calculate the dash direction based on that movement input and the camera.
-            _dashDirection = GetCameraRelativeMoveDirection(moveInput);
-        }
-        else
-        {
-            // ...otherwise (if the player is standing still), dash in the direction the character model is facing.
-            _dashDirection = transform.forward;
-        }
-
-        _dashTimer = _dashDuration;
-        _isDashing = true;
-        _velocity.y = 0f; // Reset vertical velocity for a horizontal dash.
-
-        OnDash.Invoke();
-    }
-
 
     private void UpdateDash()
     {

@@ -51,28 +51,9 @@ public class ActionController : MonoBehaviour
             Debug.Log("Dash Failed: Not enough stamina!");
         }
 
-        // LEGACY CODE
-        /*
-        if (_stateController.CurrentState is DashState) return;
+        #endregion DASH
 
-        if (!_playerMotor.IsGrounded()) return;
-
-        if (_dashCooldownTimer > 0f) return;
-
-        if (_staminaController.TryConsumeStamina(dashStaminaCost))
-        {
-            _stateController.SetState(LocomotionState.Dash);
-            _dashCooldownTimer = dashCooldown;
-        }
-        else
-        {
-            Debug.Log("Dash Failed: Not enough stamina!");
-        }
-        */
+        // When we add attacking, we will add a method here:
+        // public void TryPerformAttack() { ... }
     }
-
-    #endregion DASH
-
-    // When we add attacking, we will add a method here:
-    // public void TryPerformAttack() { ... }
 }

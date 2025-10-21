@@ -231,7 +231,7 @@ AnimatorState:
   m_TimeParameterActive: 0
   m_Motion: {fileID: -203655887218126122, guid: e93a2204c6a21f540a07169163a966a4, type: 3}
   m_Tag: 
-  m_SpeedParameter: AnimationSpeedMultiplier
+  m_SpeedParameter: DashSpeedMultiplier
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
@@ -378,6 +378,12 @@ AnimatorController:
     m_DefaultBool: 0
     m_Controller: {fileID: 9100000}
   - m_Name: AnimationSpeedMultiplier
+    m_Type: 1
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 9100000}
+  - m_Name: DashSpeedMultiplier
     m_Type: 1
     m_DefaultFloat: 0
     m_DefaultInt: 0
